@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agenda Annuel Interactif</title>
+    <title>Agenda Mensuel Interactif</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -20,21 +20,18 @@
             text-align: center;
         }
 
-        .year-calendar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-            max-width: 1200px;
+        .month-selector {
+            margin-bottom: 20px;
         }
 
-        .month {
+        .month-calendar {
             border: 1px solid #ddd;
             border-radius: 5px;
             box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
             background-color: #ffffff;
             padding: 10px;
             width: 250px;
+            margin-top: 20px;
         }
 
         .month h2 {
@@ -83,14 +80,59 @@
             margin-top: 2px;
             padding: 2px;
             border-radius: 3px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Bouton Supprimer esthétique */
+        .delete-btn {
+            background-color: #f44336; /* Rouge vif */
+            color: white;
+            border: none;
+            font-size: 12px;
+            padding: 5px 10px;
+            border-radius: 20px; /* Bordures arrondies */
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Ombre discrète */
+        }
+
+        .delete-btn:hover {
+            background-color: #d32f2f; /* Rouge plus foncé au survol */
+            transform: scale(1.05); /* Effet de zoom */
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15); /* Ombre plus marquée */
+        }
+
+        .delete-btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.5); /* Bordure d'accent au focus */
         }
     </style>
 </head>
 <body>
 
-<h1>Agenda Annuel Interactif</h1>
+<h1>Agenda Mensuel Interactif</h1>
 
-<div class="year-calendar" id="yearCalendar"></div>
+<div class="month-selector">
+    <label for="monthSelect">Sélectionner un mois :</label>
+    <select id="monthSelect" onchange="changeMonth()">
+        <option value="1">Janvier</option>
+        <option value="2">Février</option>
+        <option value="3">Mars</option>
+        <option value="4">Avril</option>
+        <option value="5">Mai</option>
+        <option value="6">Juin</option>
+        <option value="7">Juillet</option>
+        <option value="8">Août</option>
+        <option value="9">Septembre</option>
+        <option value="10">Octobre</option>
+        <option value="11">Novembre</option>
+        <option value="12">Décembre</option>
+    </select>
+</div>
+
+<div id="monthCalendar" class="month-calendar"></div>
 
 <script>
     const monthNames = [
@@ -98,46 +140,71 @@
         "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
     ];
 
-    // Génère le calendrier pour chaque mois
-    function generateCalendar(year) {
-        const calendarContainer = document.getElementById("yearCalendar");
+    const dayNames = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+
+    // Génère le calendrier pour un mois donné
+    function generateMonthCalendar(year, month) {
+        const calendarContainer = document.getElementById("monthCalendar");
         calendarContainer.innerHTML = ""; // Vide le calendrier
 
-        monthNames.forEach((month, monthIndex) => {
-            const monthContainer = document.createElement("div");
-            monthContainer.classList.add("month");
+        const monthContainer = document.createElement("div");
+        monthContainer.classList.add("month");
 
-            const monthTitle = document.createElement("h2");
-            monthTitle.textContent = `${month} ${year}`;
-            monthContainer.appendChild(monthTitle);
+        const monthTitle = document.createElement("h2");
+        monthTitle.textContent = `${monthNames[month - 1]} ${year}`;
+        monthContainer.appendChild(monthTitle);
 
-            const daysContainer = document.createElement("div");
-            daysContainer.classList.add("days");
+        // Affiche les jours de la semaine (Lun, Mar, Mer, etc.)
+        const weekDaysContainer = document.createElement("div");
+        weekDaysContainer.classList.add("days");
 
-            const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayElement = document.createElement("div");
-                dayElement.classList.add("day");
-                dayElement.id = `day-${year}-${monthIndex + 1}-${day}`;
-                dayElement.onclick = () => addTask(year, monthIndex + 1, day);
-
-                const dayTitle = document.createElement("h3");
-                dayTitle.textContent = day;
-                dayElement.appendChild(dayTitle);
-
-                const taskList = document.createElement("ul");
-                taskList.classList.add("task-list");
-                dayElement.appendChild(taskList);
-
-                loadTasks(year, monthIndex + 1, day, taskList); // Charge les tâches enregistrées
-
-                daysContainer.appendChild(dayElement);
-            }
-
-            monthContainer.appendChild(daysContainer);
-            calendarContainer.appendChild(monthContainer);
+        dayNames.forEach(dayName => {
+            const dayElement = document.createElement("div");
+            dayElement.textContent = dayName;
+            dayElement.style.fontWeight = "bold"; // Mise en gras pour les noms des jours
+            weekDaysContainer.appendChild(dayElement);
         });
+
+        monthContainer.appendChild(weekDaysContainer);
+
+        const daysContainer = document.createElement("div");
+        daysContainer.classList.add("days");
+
+        const daysInMonth = new Date(year, month, 0).getDate();
+
+        // Déterminer quel jour de la semaine commence le mois
+        const firstDay = new Date(year, month - 1, 1).getDay(); // 0 = Dimanche, 1 = Lundi, etc.
+        const offset = firstDay === 0 ? 6 : firstDay - 1; // Ajuste pour démarrer le calendrier à lundi
+
+        // Ajouter des cases vides pour les jours précédant le premier jour du mois
+        for (let i = 0; i < offset; i++) {
+            const emptyDay = document.createElement("div");
+            emptyDay.classList.add("day");
+            daysContainer.appendChild(emptyDay);
+        }
+
+        // Ajouter les jours du mois
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayElement = document.createElement("div");
+            dayElement.classList.add("day");
+            dayElement.id = `day-${year}-${month}-${day}`;
+            dayElement.onclick = () => addTask(year, month, day);
+
+            const dayTitle = document.createElement("h3");
+            dayTitle.textContent = day;
+            dayElement.appendChild(dayTitle);
+
+            const taskList = document.createElement("ul");
+            taskList.classList.add("task-list");
+            dayElement.appendChild(taskList);
+
+            loadTasks(year, month, day, taskList); // Charge les tâches enregistrées
+
+            daysContainer.appendChild(dayElement);
+        }
+
+        monthContainer.appendChild(daysContainer);
+        calendarContainer.appendChild(monthContainer);
     }
 
     // Fonction pour ajouter une tâche
@@ -147,6 +214,16 @@
         if (task) {
             const taskItem = document.createElement("li");
             taskItem.textContent = task;
+
+            const deleteButton = document.createElement("button");
+            deleteButton.textContent = "Supprimer";
+            deleteButton.classList.add("delete-btn");
+            deleteButton.onclick = (event) => {
+                event.stopPropagation(); // Empêche le clic de se propager à l'élément parent
+                deleteTask(year, month, day, task, taskItem); // Supprimer la tâche
+            };
+
+            taskItem.appendChild(deleteButton);
 
             const dayTaskList = document.querySelector(`#day-${year}-${month}-${day} .task-list`);
             dayTaskList.appendChild(taskItem);
@@ -170,13 +247,40 @@
         tasks.forEach(task => {
             const taskItem = document.createElement("li");
             taskItem.textContent = task;
+
+            const deleteButton = document.createElement("button");
+            deleteButton.textContent = "Supprimer";
+            deleteButton.classList.add("delete-btn");
+            deleteButton.onclick = (event) => {
+                event.stopPropagation();
+                deleteTask(year, month, day, task, taskItem);
+            };
+
+            taskItem.appendChild(deleteButton);
             taskListElement.appendChild(taskItem);
         });
     }
 
-    // Affiche le calendrier pour l'année actuelle
+    // Fonction pour supprimer une tâche
+    function deleteTask(year, month, day, task, taskItem) {
+        const dayKey = `tasks-${year}-${month}-${day}`;
+        let tasks = JSON.parse(localStorage.getItem(dayKey)) || [];
+        tasks = tasks.filter(t => t !== task); // Supprimer la tâche spécifique
+        localStorage.setItem(dayKey, JSON.stringify(tasks)); // Mettre à jour localStorage
+
+        taskItem.remove(); // Supprimer la tâche visuellement
+    }
+
+    // Fonction pour changer le mois
+    function changeMonth() {
+        const month = parseInt(document.getElementById("monthSelect").value);
+        const currentYear = new Date().getFullYear();
+        generateMonthCalendar(currentYear, month);
+    }
+
+    // Affiche le calendrier pour le mois actuel
     const currentYear = new Date().getFullYear();
-    generateCalendar(currentYear);
+    changeMonth(); // Affiche le mois sélectionné
 </script>
 
 </body>
