@@ -5,109 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agenda Mensuel Interactif</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-
-        .month-selector {
-            margin-bottom: 20px;
-        }
-
-        .month-calendar {
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
-            background-color: #ffffff;
-            padding: 10px;
-            width: 250px;
-            margin-top: 20px;
-        }
-
-        .month h2 {
-            text-align: center;
-            font-size: 18px;
-            margin: 0;
-            padding: 10px 0;
-            color: #333;
-        }
-
-        .days {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 5px;
-        }
-
-        .day {
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            height: 80px;
-            font-size: 12px;
-            border-radius: 3px;
-            padding: 5px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .day:hover {
-            background-color: #e0f7fa;
-        }
-
-        .task-list {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-            font-size: 10px;
-            overflow-y: auto;
-            max-height: 50px;
-        }
-
-        .task-list li {
-            background-color: #d1c4e9;
-            margin-top: 2px;
-            padding: 2px;
-            border-radius: 3px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        /* Bouton Supprimer esthétique */
-        .delete-btn {
-            background-color: #f44336; /* Rouge vif */
-            color: white;
-            border: none;
-            font-size: 12px;
-            padding: 5px 10px;
-            border-radius: 20px; /* Bordures arrondies */
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Ombre discrète */
-        }
-
-        .delete-btn:hover {
-            background-color: #d32f2f; /* Rouge plus foncé au survol */
-            transform: scale(1.05); /* Effet de zoom */
-            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15); /* Ombre plus marquée */
-        }
-
-        .delete-btn:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.5); /* Bordure d'accent au focus */
-        }
+        /* Vos styles CSS ici */
     </style>
 </head>
 <body>
@@ -115,6 +13,9 @@
 <h1>Agenda Mensuel Interactif</h1>
 
 <div class="month-selector">
+    <label for="yearSelect">Sélectionner une année :</label>
+    <input id="yearSelect" type="number" value="2024" onchange="changeMonth()" />
+
     <label for="monthSelect">Sélectionner un mois :</label>
     <select id="monthSelect" onchange="changeMonth()">
         <option value="1">Janvier</option>
@@ -140,147 +41,101 @@
         "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
     ];
 
-    const dayNames = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+    async function fetchTasks() {
+        const response = await fetch("/tasks");
+        return response.json();
+    }
 
-    // Génère le calendrier pour un mois donné
+    async function addTask(year, month, day, task) {
+        await fetch("/tasks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ year, month, day, task })
+        });
+    }
+
+    async function deleteTask(year, month, day, task) {
+        await fetch("/tasks", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ year, month, day, task })
+        });
+    }
+
     function generateMonthCalendar(year, month) {
         const calendarContainer = document.getElementById("monthCalendar");
-        calendarContainer.innerHTML = ""; // Vide le calendrier
+        calendarContainer.innerHTML = "";
 
         const monthContainer = document.createElement("div");
         monthContainer.classList.add("month");
 
         const monthTitle = document.createElement("h2");
-        monthTitle.textContent = ${monthNames[month - 1]} ${year};
+        monthTitle.textContent = `${monthNames[month - 1]} ${year}`;
         monthContainer.appendChild(monthTitle);
-
-        // Affiche les jours de la semaine (Lun, Mar, Mer, etc.)
-        const weekDaysContainer = document.createElement("div");
-        weekDaysContainer.classList.add("days");
-
-        dayNames.forEach(dayName => {
-            const dayElement = document.createElement("div");
-            dayElement.textContent = dayName;
-            dayElement.style.fontWeight = "bold"; // Mise en gras pour les noms des jours
-            weekDaysContainer.appendChild(dayElement);
-        });
-
-        monthContainer.appendChild(weekDaysContainer);
 
         const daysContainer = document.createElement("div");
         daysContainer.classList.add("days");
 
         const daysInMonth = new Date(year, month, 0).getDate();
+        const firstDay = new Date(year, month - 1, 1).getDay();
+        const offset = firstDay === 0 ? 6 : firstDay - 1;
 
-        // Déterminer quel jour de la semaine commence le mois
-        const firstDay = new Date(year, month - 1, 1).getDay(); // 0 = Dimanche, 1 = Lundi, etc.
-        const offset = firstDay === 0 ? 6 : firstDay - 1; // Ajuste pour démarrer le calendrier à lundi
-
-        // Ajouter des cases vides pour les jours précédant le premier jour du mois
         for (let i = 0; i < offset; i++) {
             const emptyDay = document.createElement("div");
             emptyDay.classList.add("day");
             daysContainer.appendChild(emptyDay);
         }
 
-        // Ajouter les jours du mois
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dayElement = document.createElement("div");
-            dayElement.classList.add("day");
-            dayElement.id = day-${year}-${month}-${day};
-            dayElement.onclick = () => addTask(year, month, day);
+        fetchTasks().then(tasks => {
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayElement = document.createElement("div");
+                dayElement.classList.add("day");
+                dayElement.onclick = () => {
+                    const task = prompt(`Ajouter une tâche pour le ${day} ${monthNames[month - 1]} ${year}:`);
+                    if (task) {
+                        addTask(year, month, day, task).then(() => changeMonth());
+                    }
+                };
 
-            const dayTitle = document.createElement("h3");
-            dayTitle.textContent = day;
-            dayElement.appendChild(dayTitle);
+                const dayTitle = document.createElement("h3");
+                dayTitle.textContent = day;
+                dayElement.appendChild(dayTitle);
 
-            const taskList = document.createElement("ul");
-            taskList.classList.add("task-list");
-            dayElement.appendChild(taskList);
+                const taskList = document.createElement("ul");
+                taskList.classList.add("task-list");
 
-            loadTasks(year, month, day, taskList); // Charge les tâches enregistrées
+                const key = `${year}-${month}-${day}`;
+                (tasks[key] || []).forEach(task => {
+                    const taskItem = document.createElement("li");
+                    taskItem.textContent = task;
 
-            daysContainer.appendChild(dayElement);
-        }
+                    const deleteButton = document.createElement("button");
+                    deleteButton.textContent = "Supprimer";
+                    deleteButton.onclick = (event) => {
+                        event.stopPropagation();
+                        deleteTask(year, month, day, task).then(() => changeMonth());
+                    };
+
+                    taskItem.appendChild(deleteButton);
+                    taskList.appendChild(taskItem);
+                });
+
+                dayElement.appendChild(taskList);
+                daysContainer.appendChild(dayElement);
+            }
+        });
 
         monthContainer.appendChild(daysContainer);
         calendarContainer.appendChild(monthContainer);
     }
 
-    // Fonction pour ajouter une tâche
-    function addTask(year, month, day) {
-        const task = prompt(Ajouter une tâche pour le ${day} ${monthNames[month - 1]} ${year}:);
-        
-        if (task) {
-            const taskItem = document.createElement("li");
-            taskItem.textContent = task;
-
-            const deleteButton = document.createElement("button");
-            deleteButton.textContent = "Supprimer";
-            deleteButton.classList.add("delete-btn");
-            deleteButton.onclick = (event) => {
-                event.stopPropagation(); // Empêche le clic de se propager à l'élément parent
-                deleteTask(year, month, day, task, taskItem); // Supprimer la tâche
-            };
-
-            taskItem.appendChild(deleteButton);
-
-            const dayTaskList = document.querySelector(#day-${year}-${month}-${day} .task-list);
-            dayTaskList.appendChild(taskItem);
-
-            saveTask(year, month, day, task); // Enregistre la tâche
-        }
-    }
-
-    // Fonction pour enregistrer une tâche dans le localStorage
-    function saveTask(year, month, day, task) {
-        const dayKey = tasks-${year}-${month}-${day};
-        let tasks = JSON.parse(localStorage.getItem(dayKey)) || [];
-        tasks.push(task);
-        localStorage.setItem(dayKey, JSON.stringify(tasks));
-    }
-
-    // Fonction pour charger les tâches depuis le localStorage
-    function loadTasks(year, month, day, taskListElement) {
-        const dayKey = tasks-${year}-${month}-${day};
-        const tasks = JSON.parse(localStorage.getItem(dayKey)) || [];
-        tasks.forEach(task => {
-            const taskItem = document.createElement("li");
-            taskItem.textContent = task;
-
-            const deleteButton = document.createElement("button");
-            deleteButton.textContent = "Supprimer";
-            deleteButton.classList.add("delete-btn");
-            deleteButton.onclick = (event) => {
-                event.stopPropagation();
-                deleteTask(year, month, day, task, taskItem);
-            };
-
-            taskItem.appendChild(deleteButton);
-            taskListElement.appendChild(taskItem);
-        });
-    }
-
-    // Fonction pour supprimer une tâche
-    function deleteTask(year, month, day, task, taskItem) {
-        const dayKey = tasks-${year}-${month}-${day};
-        let tasks = JSON.parse(localStorage.getItem(dayKey)) || [];
-        tasks = tasks.filter(t => t !== task); // Supprimer la tâche spécifique
-        localStorage.setItem(dayKey, JSON.stringify(tasks)); // Mettre à jour localStorage
-
-        taskItem.remove(); // Supprimer la tâche visuellement
-    }
-
-    // Fonction pour changer le mois
     function changeMonth() {
+        const year = parseInt(document.getElementById("yearSelect").value);
         const month = parseInt(document.getElementById("monthSelect").value);
-        const currentYear = new Date().getFullYear();
-        generateMonthCalendar(currentYear, month);
+        generateMonthCalendar(year, month);
     }
 
-    // Affiche le calendrier pour le mois actuel
-    const currentYear = new Date().getFullYear();
-    changeMonth(); // Affiche le mois sélectionné
+    changeMonth();
 </script>
 
 </body>
