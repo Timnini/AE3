@@ -1,142 +1,49 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-     <script src="script.js"></script>        
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agenda Mensuel Interactif</title>
-    <style>
-        /* Vos styles CSS ici */
-    </style>
 </head>
 <body>
 
-<h1>Agenda Mensuel Interactif</h1>
+<h1>Prénom</h1>
 
-<div class="month-selector">
-    <label for="yearSelect">Sélectionner une année :</label>
-    <input id="yearSelect" type="number" value="2024" onchange="changeMonth()" />
-
-    <label for="monthSelect">Sélectionner un mois :</label>
-    <select id="monthSelect" onchange="changeMonth()">
-        <option value="1">Janvier</option>
-        <option value="2">Février</option>
-        <option value="3">Mars</option>
-        <option value="4">Avril</option>
-        <option value="5">Mai</option>
-        <option value="6">Juin</option>
-        <option value="7">Juillet</option>
-        <option value="8">Août</option>
-        <option value="9">Septembre</option>
-        <option value="10">Octobre</option>
-        <option value="11">Novembre</option>
-        <option value="12">Décembre</option>
-    </select>
-</div>
-
-<div id="monthCalendar" class="month-calendar"></div>
+<input type="text" id="name" name="user_name" />
+<button id="submitButton">Valider</button>
+<div id="feedback"></div>
 
 <script>
-    const monthNames = [
-        "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
-    ];
+    // Initialisation d'un tableau pour stocker les prénoms
+    let prenoms = [];
 
-    async function fetchTasks() {
-        const response = await fetch("/tasks");
-        return response.json();
+    // Fonction pour générer et télécharger un fichier texte
+    function telechargerFichier(nomFichier, contenu) {
+        const blob = new Blob([contenu], { type: "text/plain" });
+        const lien = document.createElement("a");
+        lien.href = URL.createObjectURL(blob);
+        lien.download = nomFichier;
+        lien.click();
+        URL.revokeObjectURL(lien.href);
     }
 
-    async function addTask(year, month, day, task) {
-        await fetch("/tasks", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ year, month, day, task })
-        });
-    }
+    // Fonction appelée au clic sur le bouton
+    document.getElementById('submitButton').addEventListener('click', () => {
+        const nameInput = document.getElementById('name');
+        const prenom = nameInput.value.trim();
+        const feedbackDiv = document.getElementById('feedback');
 
-    async function deleteTask(year, month, day, task) {
-        await fetch("/tasks", {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ year, month, day, task })
-        });
-    }
+        if (prenom) {
+            prenoms.push(prenom); // Ajoute le prénom au tableau
+            feedbackDiv.textContent = `Le prénom "${prenom}" a été enregistré.`;
 
-    function generateMonthCalendar(year, month) {
-        const calendarContainer = document.getElementById("monthCalendar");
-        calendarContainer.innerHTML = "";
-
-        const monthContainer = document.createElement("div");
-        monthContainer.classList.add("month");
-
-        const monthTitle = document.createElement("h2");
-        monthTitle.textContent = `${monthNames[month - 1]} ${year}`;
-        monthContainer.appendChild(monthTitle);
-
-        const daysContainer = document.createElement("div");
-        daysContainer.classList.add("days");
-
-        const daysInMonth = new Date(year, month, 0).getDate();
-        const firstDay = new Date(year, month - 1, 1).getDay();
-        const offset = firstDay === 0 ? 6 : firstDay - 1;
-
-        for (let i = 0; i < offset; i++) {
-            const emptyDay = document.createElement("div");
-            emptyDay.classList.add("day");
-            daysContainer.appendChild(emptyDay);
+            // Générer et télécharger le fichier avec les prénoms
+            const contenuFichier = prenoms.join("\n");
+            telechargerFichier("prenoms.txt", contenuFichier);
+        } else {
+            feedbackDiv.textContent = "Veuillez entrer un prénom.";
         }
-
-        fetchTasks().then(tasks => {
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayElement = document.createElement("div");
-                dayElement.classList.add("day");
-                dayElement.onclick = () => {
-                    const task = prompt(`Ajouter une tâche pour le ${day} ${monthNames[month - 1]} ${year}:`);
-                    if (task) {
-                        addTask(year, month, day, task).then(() => changeMonth());
-                    }
-                };
-
-                const dayTitle = document.createElement("h3");
-                dayTitle.textContent = day;
-                dayElement.appendChild(dayTitle);
-
-                const taskList = document.createElement("ul");
-                taskList.classList.add("task-list");
-
-                const key = `${year}-${month}-${day}`;
-                (tasks[key] || []).forEach(task => {
-                    const taskItem = document.createElement("li");
-                    taskItem.textContent = task;
-
-                    const deleteButton = document.createElement("button");
-                    deleteButton.textContent = "Supprimer";
-                    deleteButton.onclick = (event) => {
-                        event.stopPropagation();
-                        deleteTask(year, month, day, task).then(() => changeMonth());
-                    };
-
-                    taskItem.appendChild(deleteButton);
-                    taskList.appendChild(taskItem);
-                });
-
-                dayElement.appendChild(taskList);
-                daysContainer.appendChild(dayElement);
-            }
-        });
-
-        monthContainer.appendChild(daysContainer);
-        calendarContainer.appendChild(monthContainer);
-    }
-
-    function changeMonth() {
-        const year = parseInt(document.getElementById("yearSelect").value);
-        const month = parseInt(document.getElementById("monthSelect").value);
-        generateMonthCalendar(year, month);
-    }
-
-    changeMonth();
+    });
 </script>
 
 </body>
