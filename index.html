@@ -3,48 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agenda Mensuel Interactif</title>
+    <title>Calendrier avec tâches</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+        }
+        .day {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .day h3 {
+            margin-top: 0;
+            font-size: 18px;
+        }
+        .tasks {
+            margin-top: 10px;
+        }
+        .task {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .task span {
+            flex: 1;
+        }
+        .task button {
+            margin-left: 10px;
+        }
+    </style>
 </head>
 <body>
+    <h1>Calendrier</h1>
+    <div class="calendar" id="calendar">
+        <!-- Les jours seront générés ici par JavaScript -->
+    </div>
 
-<h1>Prénom</h1>
+    <script>
+        // Génération d'un calendrier de 31 jours
+        const calendar = document.getElementById('calendar');
 
-<input type="text" id="name" name="user_name" />
-<button id="submitButton">Valider</button>
-<div id="feedback"></div>
-
-<script>
-    // Initialisation d'un tableau pour stocker les prénoms
-    let prenoms = [];
-
-    // Fonction pour générer et télécharger un fichier texte
-    function telechargerFichier(nomFichier, contenu) {
-        const blob = new Blob([contenu], { type: "text/plain" });
-        const lien = document.createElement("a");
-        lien.href = URL.createObjectURL(blob);
-        lien.download = nomFichier;
-        lien.click();
-        URL.revokeObjectURL(lien.href);
-    }
-
-    // Fonction appelée au clic sur le bouton
-    document.getElementById('submitButton').addEventListener('click', () => {
-        const nameInput = document.getElementById('name');
-        const prenom = nameInput.value.trim();
-        const feedbackDiv = document.getElementById('feedback');
-
-        if (prenom) {
-            prenoms.push(prenom); // Ajoute le prénom au tableau
-            feedbackDiv.textContent = `Le prénom "${prenom}" a été enregistré.`;
-
-            // Générer et télécharger le fichier avec les prénoms
-            const contenuFichier = prenoms.join("\n");
-            telechargerFichier("prenoms.txt", contenuFichier);
-        } else {
-            feedbackDiv.textContent = "Veuillez entrer un prénom.";
+        for (let i = 1; i <= 31; i++) {
+            const day = document.createElement('div');
+            day.className = 'day';
+            day.innerHTML = `
+                <h3>Jour ${i}</h3>
+                <div class="tasks" id="tasks-${i}">
+                    <!-- Tâches ajoutées ici -->
+                </div>
+                <input type="text" id="input-${i}" placeholder="Nouvelle tâche">
+                <button onclick="addTask(${i})">Ajouter</button>
+            `;
+            calendar.appendChild(day);
         }
-    });
-</script>
 
+        // Fonction pour ajouter une tâche
+        function addTask(dayNumber) {
+            const input = document.getElementById(`input-${dayNumber}`);
+            const tasksContainer = document.getElementById(`tasks-${dayNumber}`);
+
+            if (input.value.trim() !== '') {
+                const task = document.createElement('div');
+                task.className = 'task';
+                task.innerHTML = `
+                    <span>${input.value}</span>
+                    <button onclick="removeTask(this)">Supprimer</button>
+                `;
+                tasksContainer.appendChild(task);
+                input.value = '';
+            }
+        }
+
+        // Fonction pour supprimer une tâche
+        function removeTask(button) {
+            button.parentElement.remove();
+        }
+    </script>
 </body>
 </html>
